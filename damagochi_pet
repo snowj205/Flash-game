@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>두근두근 펫월드</title>
+<style>
+:root {
+  --pink: #ff75b7;
+  --pink-dark: #e85c9d;
+  --pale: #fff2f8;
+  --border: #ffe0ef;
+  --text: #554451;
+  --purple: #b78ae8;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: Arial, "Malgun Gothic", sans-serif;
+  background: var(--pale); color: var(--text);
+}
+button {
+  border: 0; border-radius: 15px; padding: 12px 15px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  background: var(--pink); color: white;
+  box-shadow: 0 3px 0 var(--pink-dark);
+  transition: transform .12s, opacity .12s;
+}
+button:active { transform: translateY(2px); box-shadow: none; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.header {
+  background: white; padding: 18px 12px; text-align: center;
+  border-bottom: 3px solid #ffd1e7;
+}
+.header h1 { margin: 0; color: #f05ca5; font-size: 27px; }
+.header p { margin: 7px 0 0; font-size: 13px; }
+.game { width: min(100% - 24px, 760px); margin: 18px auto; }
+.sound-row { text-align: right; margin-bottom: 12px; }
+.sound-toggle { background: var(--purple); box-shadow: 0 3px 0 #9466c7; }
+.top-info { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+.info-pill {
+  flex: 1; min-width: 105px; background: white; padding: 12px;
+  text-align: center; border-radius: 16px; font-weight: bold; border: 2px solid var(--border);
+}
+.card {
+  background: white; padding: 20px; border-radius: 22px; margin-bottom: 16px;
+  border: 2px solid var(--border); box-shadow: 0 4px 12px #eaa9cb22;
+}
+.pet-area { text-align: center; background: linear-gradient(#fffafd, #ffe8f4); }
+.pet-name { font-size: 22px; font-weight: bold; color: #e95099; }
+.pet-level { font-size: 14px; margin-top: 6px; }
+.pet {
+  font-size: 110px; line-height: 1.5; margin: 5px 0; cursor: pointer;
+  user-select: none; transition: transform .2s;
+}
+.pet:hover { transform: scale(1.06); }
+.pet-message { min-height: 25px; color: #ba5488; font-weight: bold; margin-bottom: 12px; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; text-align: left; }
+.stat { font-size: 13px; }
+.stat-title { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.bar { height: 13px; background: #f6e7ef; border-radius: 20px; overflow: hidden; }
+.fill { height: 100%; width: 50%; background: var(--pink); border-radius: 20px; transition: width .3s; }
+.section-title { font-size: 19px; margin: 0 0 14px; color: #d94d92; }
+.actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.action-btn { padding: 12px 5px; font-size: 14px; }
+.action-btn span { display: block; font-size: 24px; margin-bottom: 5px; }
+.mini-games, .shop-items { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mini-card, .shop-item {
+  border: 2px solid var(--border); border-radius: 17px; padding: 15px 10px;
+  text-align: center; background: #fffafd;
+}
+.mini-card .icon, .shop-item .icon { font-size: 37px; }
+.mini-card h3, .shop-item h3 { margin: 8px 0; font-size: 16px; }
+.mini-card p { font-size: 12px; line-height: 1.5; min-height: 35px; }
+.shop-item p { font-size: 13px; }
+.mini-card button, .shop-item button { width: 100%; font-size: 13px; }
+.pet-choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pet-choice {
+  background: #fffafd; color: #75536a; border: 2px solid var(--border);
+  box-shadow: none; padding: 12px 5px;
+}
+.pet-choice.selected { background: #ffe1ef; border-color: #f05ca5; color: #a32b68; }
+.pet-choice .icon { display: block; font-size: 35px; margin-bottom: 6px; }
+.notice { text-align: center; color: #9c7890; font-size: 12px; line-height: 1.6; padding: 8px 0 25px; }
+.reset-btn { background: #c5b3c0; box-shadow: 0 3px 0 #a18d9b; font-size: 12px; }
+.inventory { font-size: 13px; line-height: 1.8; color: #87647b; }
+@media (max-width: 480px) {
+  .header h1 { font-size: 23px; }
+  .card { padding: 15px; }
+  .pet { font-size: 90px; }
+  .actions { grid-template-columns: repeat(2, 1fr); }
+  .stats { grid-template-columns: 1fr; }
+  button { padding: 11px 8px; }
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <h1>🌸 두근두근 펫월드 🌸</h1>
+  <p>귀여운 펫과 함께하는 나만의 작은 세상!</p>
+</header>
+
+<main class="game">
+  <div class="sound-row">
+    <button id="soundToggle" class="sound-toggle" onclick="toggleSound()">🔊 효과음 켜짐</button>
+  </div>
+
+  <div class="top-info">
+    <div class="info-pill">🪙 <span id="coins">50</span> 코인</div>
+    <div class="info-pill">📅 <span id="days">1</span>일째</div>
+    <div class="info-pill">⭐ <span id="totalLevel">1</span> 레벨</div>
+  </div>
+
+  <section class="card pet-area">
+    <div class="pet-name" id="petName">몽실이</div>
+    <div class="pet-level" id="levelText">Lv. 1 · 아기 펫</div>
+    <div class="pet" id="petEmoji" onclick="petTap()" role="button" aria-label="펫 쓰다듬기">🐰</div>
+    <div class="pet-message" id="message" aria-live="polite">안녕! 나랑 재미있게 놀자!</div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-title"><span>🍎 배부름</span><span id="foodText">80%</span></div>
+        <div class="bar"><div class="fill" id="foodBar"></div></div>
+      </div>
+      <div class="stat">
+        <div class="stat-title"><span>💗 행복</span><span id="happyText">80%</span></div>
+        <div class="bar"><div class="fill" id="happyBar"></div></div>
+      </div>
+      <div class="stat">
+        <div class="stat-title"><span>⚡ 에너지</span><span id="energyText">80%</span></div>
+        <div class="bar"><div class="fill" id="energyBar"></div></div>
+      </div>
+      <div class="stat">
+        <div class="stat-title"><span>🌱 경험치</span><span id="xpText">0 / 100</span></div>
+        <div class="bar"><div class="fill" id="xpBar"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">💕 펫 돌보기</h2>
+    <div class="actions">
+      <button class="action-btn" onclick="care('feed')"><span>🍎</span>먹이 주기</button>
+      <button class="action-btn" onclick="care('play')"><span>🎾</span>놀아주기</button>
+      <button class="action-btn" onclick="care('sleep')"><span>🌙</span>재우기</button>
+      <button class="action-btn" onclick="care('wash')"><span>🛁</span>씻기</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">🎮 미니게임</h2>
+    <div class="mini-games">
+      <div class="mini-card">
+        <div class="icon">🎁</div><h3>보물상자</h3>
+        <p>상자를 열어 코인을 얻어 보자!</p>
+        <button onclick="treasureGame()">상자 열기</button>
+      </div>
+      <div class="mini-card">
+        <div class="icon">✊</div><h3>가위바위보</h3>
+        <p>펫과 대결해서 이기면 보상 획득!</p>
+        <button onclick="rpsGame()">대결하기</button>
+      </div>
+      <div class="mini-card">
+        <div class="icon">🍀</div><h3>행운 숫자</h3>
+        <p>1부터 3까지 숫자를 골라 봐!</p>
+        <button onclick="numberGame()">숫자 맞히기</button>
+      </div>
+      <div class="mini-card">
+        <div class="icon">💖</div><h3>펫 쓰다듬기</h3>
+        <p>펫을 쓰다듬고 행복을 높여 줘.</p>
+        <button onclick="care('pet')">쓰다듬기</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">🛍️ 펫 상점</h2>
+    <div class="shop-items">
+      <div class="shop-item"><div class="icon">🧸</div><h3>귀여운 장난감</h3><p>가격: 20 코인</p><button onclick="buyItem('toy')">구매하기</button></div>
+      <div class="shop-item"><div class="icon">🎀</div><h3>반짝 리본</h3><p>가격: 30 코인</p><button onclick="buyItem('ribbon')">구매하기</button></div>
+      <div class="shop-item"><div class="icon">🍰</div><h3>맛있는 케이크</h3><p>가격: 15 코인</p><button onclick="buyItem('cake')">구매하기</button></div>
+      <div class="shop-item"><div class="icon">🪄</div><h3>성장 물약</h3><p>가격: 40 코인</p><button onclick="buyItem('potion')">구매하기</button></div>
+    </div>
+    <p class="inventory" id="inventory">내 소지품: 장난감 0개 · 리본 0개</p>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">🐾 나의 펫 선택</h2>
+    <div class="pet-choices">
+      <button class="pet-choice selected" onclick="choosePet('rabbit')"><span class="icon">🐰</span>토끼</button>
+      <button class="pet-choice" onclick="choosePet('cat')"><span class="icon">🐱</span>고양이</button>
+      <button class="pet-choice" onclick="choosePet('dog')"><span class="icon">🐶</span>강아지</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">💾 게임 데이터</h2>
+    <p style="font-size:13px;line-height:1.7">
+      게임 데이터는 현재 사용 중인 브라우저에 자동 저장돼. 같은 기기와 브라우저에서 다시 열면 이어서 플레이할 수 있어.
+      브라우저 데이터 삭제나 시크릿 모드 사용 시 저장 내용이 사라질 수 있어.
+    </p>
+    <button class="reset-btn" onclick="resetGame()">게임 처음부터 시작</button>
+  </section>
+  <div class="notice">두근두근 펫월드 🌸<br>소중한 펫을 돌보며 함께 성장해 보세요!</div>
+</main>
+
+<script>
+// ---------- 효과음: 별도 음원 파일 없이 Web Audio로 생성 ----------
+let audioContext = null;
+let soundEnabled = true;
+
+function prepareSound() {
+  const AudioClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioClass) return false;
+  if (!audioContext) audioContext = new AudioClass();
+  if (audioContext.state === "suspended") {
+    audioContext.resume().catch(() => {});
+  }
+  return true;
+}
+
+function beep(frequency = 600, duration = 0.12, type = "sine", volume = 0.05, endFrequency = null) {
+  if (!soundEnabled || !prepareSound()) return;
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const now = audioContext.currentTime;
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, now);
+  if (endFrequency) oscillator.frequency.exponentialRampToValueAtTime(endFrequency, now + duration);
+  gain.gain.setValueAtTime(Math.max(0.001, volume), now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start(now);
+  oscillator.stop(now + duration);
+}
+
+function soundClick() { beep(650, 0.07, "sine", 0.035); }
+function soundFeed() {
+  beep(520, 0.10, "sine", 0.045);
+  setTimeout(() => beep(680, 0.12, "sine", 0.04), 100);
+}
+function soundPlay() {
+  beep(440, 0.10, "triangle", 0.04);
+  setTimeout(() => beep(660, 0.10, "triangle", 0.04), 90);
+  setTimeout(() => beep(880, 0.13, "triangle", 0.045), 180);
+}
+function soundWash() {
+  beep(750, 0.08, "sine", 0.03);
+  setTimeout(() => beep(900, 0.08, "sine", 0.03), 100);
+  setTimeout(() => beep(1050, 0.12, "sine", 0.03), 200);
+}
+function soundSleep() {
+  beep(520, 0.25, "sine", 0.035);
+  setTimeout(() => beep(390, 0.35, "sine", 0.03), 220);
+}
+function soundPet() {
+  beep(880, 0.12, "sine", 0.04);
+  setTimeout(() => beep(1100, 0.16, "sine", 0.035), 100);
+}
+function soundTreasure() {
+  beep(500, 0.12, "triangle", 0.045);
+  setTimeout(() => beep(700, 0.12, "triangle", 0.045), 110);
+  setTimeout(() => beep(950, 0.22, "triangle", 0.05), 220);
+}
+function soundCoin() {
+  beep(1000, 0.08, "sine", 0.035);
+  setTimeout(() => beep(1350, 0.16, "sine", 0.035), 80);
+}
+function soundBuy() {
+  beep(700, 0.12, "sine", 0.04);
+  setTimeout(() => beep(1000, 0.18, "sine", 0.04), 120);
+}
+function soundLevelUp() {
+  beep(523, 0.14, "triangle", 0.045);
+  setTimeout(() => beep(659, 0.14, "triangle", 0.045), 140);
+  setTimeout(() => beep(784, 0.14, "triangle", 0.045), 280);
+  setTimeout(() => beep(1047, 0.35, "triangle", 0.05), 420);
+}
+function soundResult() {
+  beep(600, 0.10, "sine", 0.035);
+  setTimeout(() => beep(800, 0.15, "sine", 0.035), 110);
+}
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const button = document.getElementById("soundToggle");
+  button.textContent = soundEnabled ? "🔊 효과음 켜짐" : "🔇 효과음 꺼짐";
+  if (soundEnabled) {
+    prepareSound();
+    soundClick();
+  }
+}
+
+// ---------- 게임 상태 및 자동 저장 ----------
+const pets = {
+  rabbit: { emoji: "🐰", name: "몽실이" },
+  cat: { emoji: "🐱", name: "나비" },
+  dog: { emoji: "🐶", name: "초코" }
+};
+const SAVE_KEY = "petWorldSave_v1";
+const defaultState = {
+  coins: 50, days: 1, petType: "rabbit",
+  food: 80, happy: 80, energy: 80, xp: 0, level: 1,
+  toys: 0, ribbons: 0, lastDecay: Date.now(), lastDay: Date.now()
+};
+
+function loadGame() {
+  try {
+    const saved = localStorage.getItem(SAVE_KEY);
+    if (!saved) return { ...defaultState };
+    const data = JSON.parse(saved);
+    return { ...defaultState, ...data };
+  } catch (error) {
+    return { ...defaultState };
+  }
+}
+let state = loadGame();
+
+function saveGame() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.warn("게임 데이터를 저장할 수 없습니다.", error);
+  }
+}
+function clamp(value) { return Math.max(0, Math.min(100, Math.round(value))); }
+function setMessage(text) { document.getElementById("message").textContent = text; }
+
+function addXP(amount) {
+  state.xp += amount;
+  while (state.xp >= 100) {
+    state.xp -= 100;
+    state.level++;
+    state.coins += 10;
+    soundLevelUp();
+    setMessage("🎉 레벨 업! 보너스 코인 10개!");
+  }
+}
+function updateStat(name, value) {
+  const safeValue = clamp(value);
+  document.getElementById(name + "Text").textContent = safeValue + "%";
+  document.getElementById(name + "Bar").style.width = safeValue + "%";
+}
+function render() {
+  const pet = pets[state.petType] || pets.rabbit;
+  document.getElementById("coins").textContent = state.coins;
+  document.getElementById("days").textContent = state.days;
+  document.getElementById("totalLevel").textContent = state.level;
+  document.getElementById("petName").textContent = pet.name;
+  document.getElementById("petEmoji").textContent = pet.emoji;
+  document.getElementById("levelText").textContent =
+    "Lv. " + state.level + " · " +
+    (state.level < 3 ? "아기 펫" : state.level < 6 ? "어린 펫" : "멋진 펫");
+  updateStat("food", state.food);
+  updateStat("happy", state.happy);
+  updateStat("energy", state.energy);
+  document.getElementById("xpText").textContent = state.xp + " / 100";
+  document.getElementById("xpBar").style.width = state.xp + "%";
+  document.getElementById("inventory").textContent =
+    "내 소지품: 장난감 " + state.toys + "개 · 리본 " + state.ribbons + "개";
+  document.querySelectorAll(".pet-choice").forEach((button, index) => {
+    const types = ["rabbit", "cat", "dog"];
+    button.classList.toggle("selected", types[index] === state.petType);
+  });
+}
+function finishAction() { render(); saveGame(); }
+
+// ---------- 펫 돌보기 ----------
+function care(action) {
+  if (action === "feed") soundFeed();
+  if (action === "play") soundPlay();
+  if (action === "sleep") soundSleep();
+  if (action === "wash") soundWash();
+  if (action === "pet") soundPet();
+
+  switch (action) {
+    case "feed":
+      if (state.food >= 100) {
+        setMessage("배가 불러요! 조금 있다가 먹을게요.");
+        break;
+      }
+      state.food = clamp(state.food + 20);
+      state.happy = clamp(state.happy + 5);
+      setMessage("🍎 냠냠! 맛있게 먹었어요!");
+      addXP(5);
+      break;
+    case "play":
+      if (state.energy < 15) {
+        setMessage("너무 피곤해요. 먼저 쉬고 싶어요!");
+        break;
+      }
+      state.happy = clamp(state.happy + 20);
+      state.energy = clamp(state.energy - 15);
+      state.food = clamp(state.food - 5);
+      setMessage("🎾 신나게 놀았어요!");
+      addXP(10);
+      break;
+    case "sleep":
+      state.energy = 100;
+      setMessage("🌙 푹 자고 기운이 넘쳐요!");
+      addXP(3);
+      break;
+    case "wash":
+      state.happy = clamp(state.happy + 10);
+      setMessage("🛁 깨끗하고 상쾌해졌어요!");
+      addXP(5);
+      break;
+    case "pet":
+      state.happy = clamp(state.happy + 10);
+      setMessage("💖 쓰다듬어 줘서 정말 좋아요!");
+      addXP(3);
+      break;
+  }
+  finishAction();
+}
+function petTap() {
+  soundPet();
+  state.happy = clamp(state.happy + 2);
+  setMessage("💕 " + pets[state.petType].name + "가 좋아해요!");
+  finishAction();
+}
+
+// ---------- 미니게임 ----------
+function treasureGame() {
+  soundTreasure();
+  const rewards = [5, 10, 15, 20, 30];
+  const reward = rewards[Math.floor(Math.random() * rewards.length)];
+  state.coins += reward;
+  state.happy = clamp(state.happy + 5);
+  addXP(5);
+  setMessage("🎁 보물상자에서 " + reward + "코인을 발견했어요!");
+  setTimeout(soundCoin, 300);
+  finishAction();
+}
+function rpsGame() {
+  prepareSound();
+  const options = ["가위", "바위", "보"];
+  const icons = ["✌️", "✊", "✋"];
+  const answer = prompt("무엇을 낼까요?\n1. 가위\n2. 바위\n3. 보");
+  if (answer === null) return;
+  const choice = Number(answer) - 1;
+  if (![0, 1, 2].includes(choice)) {
+    alert("1, 2, 3 중 하나를 입력해 주세요.");
+    return;
+  }
+  const computer = Math.floor(Math.random() * 3);
+  let result;
+  if (choice === computer) {
+    state.coins += 5;
+    result = "비겼어요! 참가 보상 5코인!";
+    soundResult();
+  } else if ((choice - computer + 3) % 3 === 1) {
+    state.coins += 15;
+    state.happy = clamp(state.happy + 10);
+    addXP(10);
+    result = "이겼어요! 15코인을 받았어요!";
+    soundCoin();
+  } else {
+    result = "아쉽게 졌어요! 다음에 다시 도전해요.";
+    beep(260, 0.22, "triangle", 0.035);
+  }
+  alert("나: " + options[choice] + " " + icons[choice] +
+    "\n펫: " + options[computer] + " " + icons[computer] + "\n\n" + result);
+  setMessage(result);
+  finishAction();
+}
+function numberGame() {
+  prepareSound();
+  const answer = Math.floor(Math.random() * 3) + 1;
+  const input = prompt("행운의 숫자를 골라 봐! (1~3)");
+  if (input === null) return;
+  const choice = Number(input);
+  if (![1, 2, 3].includes(choice)) {
+    alert("1, 2, 3 중 하나를 입력해 주세요.");
+    return;
+  }
+  if (choice === answer) {
+    state.coins += 20;
+    state.happy = clamp(state.happy + 10);
+    addXP(10);
+    setMessage("🍀 정답! 20코인을 획득했어요!");
+    soundCoin();
+    alert("정답이에요! 20코인을 받았어요!");
+  } else {
+    state.coins += 3;
+    setMessage("🍀 정답은 " + answer + "! 참가 보상 3코인!");
+    soundResult();
+    alert("아쉬워요! 정답은 " + answer + "였어요.\n참가 보상 3코인!");
+  }
+  finishAction();
+}
+
+// ---------- 상점 ----------
+function buyItem(item) {
+  const products = {
+    toy: { name: "장난감", price: 20, action: () => {
+      state.toys++; state.happy = clamp(state.happy + 20);
+    }},
+    ribbon: { name: "리본", price: 30, action: () => {
+      state.ribbons++; state.happy = clamp(state.happy + 10);
+    }},
+    cake: { name: "케이크", price: 15, action: () => {
+      state.food = clamp(state.food + 30); state.happy = clamp(state.happy + 10);
+    }},
+    potion: { name: "성장 물약", price: 40, action: () => addXP(50) }
+  };
+  const product = products[item];
+  if (!product) return;
+  if (state.coins < product.price) {
+    alert("코인이 부족해요! 미니게임으로 코인을 모아 보세요.");
+    soundResult();
+    return;
+  }
+  if (!confirm(product.name + "을(를) " + product.price + "코인에 구매할까요?")) return;
+  state.coins -= product.price;
+  product.action();
+  soundBuy();
+  setMessage("🛍️ " + product.name + " 구매 완료!");
+  finishAction();
+}
+function choosePet(type) {
+  if (!pets[type]) return;
+  state.petType = type;
+  soundClick();
+  setMessage(pets[type].name + "와 함께 놀아 보세요!");
+  finishAction();
+}
+
+// 시간에 따라 수치가 조금씩 감소하며, 오프라인 시간은 최대 24시간만 반영
+function updateTime() {
+  const now = Date.now();
+  const lastDecay = Number(state.lastDecay) || now;
+  const elapsedMinutes = Math.max(0, Math.floor((now - lastDecay) / 60000));
+  if (elapsedMinutes < 1) return;
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  const decayHours = Math.min(8, elapsedHours);
+  if (decayHours > 0) {
+    state.food = clamp(state.food - decayHours * 3);
+    state.happy = clamp(state.happy - decayHours * 2);
+    state.energy = clamp(state.energy - decayHours * 3);
+  }
+  state.lastDecay = now;
+
+  const lastDay = Number(state.lastDay) || now;
+  const daysPassed = Math.floor((now - lastDay) / 86400000);
+  if (daysPassed > 0) {
+    state.days += daysPassed;
+    state.lastDay = lastDay + daysPassed * 86400000;
+  }
+  saveGame();
+}
+function resetGame() {
+  if (!confirm("정말 게임을 처음부터 시작할까요?\n저장된 게임 데이터가 사라집니다.")) return;
+  localStorage.removeItem(SAVE_KEY);
+  state = { ...defaultState, lastDecay: Date.now(), lastDay: Date.now() };
+  setMessage("새로운 모험을 시작해요!");
+  soundResult();
+  finishAction();
+}
+
+// 첫 화면 표시
+updateTime();
+render();
+saveGame();
+setInterval(() => { updateTime(); render(); }, 60000);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) saveGame();
+  else { updateTime(); render(); }
+});
+window.addEventListener("beforeunload", saveGame);
+</script>
+</body>
+</html>
